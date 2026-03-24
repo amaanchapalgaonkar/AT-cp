@@ -20,10 +20,10 @@ static const char *DEMO_INPUT =
    If no argument, runs built-in demo.
    ───────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
-    printf("╔══════════════════════════════════════════════════╗\n");
-    printf("║   Automata-Based NLP Tokenization Engine         ║\n");
-    printf("║   Thompson NFA → Subset DFA → Hopcroft Min-DFA   ║\n");
-    printf("╚══════════════════════════════════════════════════╝\n\n");
+    printf("======================================================\n");
+    printf("   Automata-Based NLP Tokenization Engine         \n");
+    printf("   Thompson NFA → Subset DFA → Hopcroft Min-DFA   \n");
+    printf("====================================================\n\n");
 
     /* Choose input: CLI argument or built-in demo */
     const char *input = (argc > 1) ? argv[1] : DEMO_INPUT;
