@@ -3,29 +3,19 @@
 #include <string.h>
 #include "nfa.h"
 
-/* ═══════════════════════════════════════════════════════════
-   nfa.c — Thompson's Construction (Regex → NFA)
-   ═══════════════════════════════════════════════════════════ */
+#define WILDCARD '\x01'
 
-/* Special sentinels */
-#define WILDCARD '\x01'   /* matches any non-null char in simulation */
-
-/* ── Internal parser state ── */
 typedef struct {
     const char *src;
     int         pos;
     NFA        *nfa;
 } Parser;
 
-/* Forward declarations */
 static NFAFragment parse_expr(Parser *p);
 static NFAFragment parse_concat(Parser *p);
 static NFAFragment parse_quantifier(Parser *p);
 static NFAFragment parse_atom(Parser *p);
 
-/* ─────────────────────────────────────────────
-   NFA memory management
-   ───────────────────────────────────────────── */
 NFA *nfa_create(void) {
     NFA *nfa = calloc(1, sizeof(NFA));
     if (!nfa) { fprintf(stderr, "nfa_create: out of memory\n"); exit(1); }
@@ -58,12 +48,6 @@ void nfa_add_transition(NFAState *src, char c, NFAState *dst) {
     src->trans_count++;
 }
 
-/* ─────────────────────────────────────────────
-   Thompson fragment constructors
-   (ORDER MATTERS: frag_union before frag_class)
-   ───────────────────────────────────────────── */
-
-/* Single literal character */
 static NFAFragment frag_char(NFA *nfa, char c) {
     NFAState *s = nfa_new_state(nfa);
     NFAState *a = nfa_new_state(nfa);
@@ -72,13 +56,10 @@ static NFAFragment frag_char(NFA *nfa, char c) {
     return (NFAFragment){s, a};
 }
 
-/* Wildcard: matches any non-null character */
 static NFAFragment frag_wildcard(NFA *nfa) {
     return frag_char(nfa, WILDCARD);
 }
 
-/* Alternation: f1 | f2
-   Must be defined BEFORE frag_class which calls it. */
 static NFAFragment frag_union(NFA *nfa, NFAFragment f1, NFAFragment f2) {
     NFAState *start  = nfa_new_state(nfa);
     NFAState *accept = nfa_new_state(nfa);
@@ -92,11 +73,8 @@ static NFAFragment frag_union(NFA *nfa, NFAFragment f1, NFAFragment f2) {
     return (NFAFragment){start, accept};
 }
 
-/* Character class [abc] / [a-z]
-   Built as a left-linear union tree so no state ever needs > 2 epsilon edges. */
 static NFAFragment frag_class(NFA *nfa, const char *chars, int n) {
     if (n == 0) {
-        /* Empty class — dead fragment */
         NFAState *s = nfa_new_state(nfa);
         s->is_accept = 1;
         return (NFAFragment){s, s};
@@ -107,7 +85,6 @@ static NFAFragment frag_class(NFA *nfa, const char *chars, int n) {
     return result;
 }
 
-/* Concatenation: f1 then f2 */
 static NFAFragment frag_concat(NFA *nfa, NFAFragment f1, NFAFragment f2) {
     (void)nfa;
     f1.accept->is_accept = 0;
@@ -115,7 +92,6 @@ static NFAFragment frag_concat(NFA *nfa, NFAFragment f1, NFAFragment f2) {
     return (NFAFragment){f1.start, f2.accept};
 }
 
-/* Kleene star: f* */
 static NFAFragment frag_star(NFA *nfa, NFAFragment f) {
     NFAState *start  = nfa_new_state(nfa);
     NFAState *accept = nfa_new_state(nfa);
@@ -128,7 +104,6 @@ static NFAFragment frag_star(NFA *nfa, NFAFragment f) {
     return (NFAFragment){start, accept};
 }
 
-/* One or more: f+ */
 static NFAFragment frag_plus(NFA *nfa, NFAFragment f) {
     NFAState *accept = nfa_new_state(nfa);
     accept->is_accept = 1;
@@ -138,7 +113,6 @@ static NFAFragment frag_plus(NFA *nfa, NFAFragment f) {
     return (NFAFragment){f.start, accept};
 }
 
-/* Zero or one: f? */
 static NFAFragment frag_question(NFA *nfa, NFAFragment f) {
     NFAState *start  = nfa_new_state(nfa);
     NFAState *accept = nfa_new_state(nfa);
@@ -150,13 +124,9 @@ static NFAFragment frag_question(NFA *nfa, NFAFragment f) {
     return (NFAFragment){start, accept};
 }
 
-/* ─────────────────────────────────────────────
-   Character class parser  [...]
-   Expands ranges and escapes into a flat char buf.
-   ───────────────────────────────────────────── */
 static int parse_char_class(Parser *p, char *buf) {
     int n = 0;
-    if (p->src[p->pos] == '^') p->pos++; /* negation not supported, skip */
+    if (p->src[p->pos] == '^') p->pos++;
 
     while (p->src[p->pos] && p->src[p->pos] != ']') {
         char lo = p->src[p->pos++];
@@ -167,7 +137,7 @@ static int parse_char_class(Parser *p, char *buf) {
             else if (lo == 'r') lo = '\r';
             buf[n++] = lo;
         } else if (p->src[p->pos] == '-' && p->src[p->pos+1] != ']') {
-            p->pos++; /* skip '-' */
+            p->pos++;
             char hi = p->src[p->pos++];
             for (char c = lo; c <= hi; c++) buf[n++] = c;
         } else {
@@ -178,9 +148,6 @@ static int parse_char_class(Parser *p, char *buf) {
     return n;
 }
 
-/* ─────────────────────────────────────────────
-   Recursive descent parser
-   ───────────────────────────────────────────── */
 static NFAFragment parse_expr(Parser *p) {
     NFAFragment left = parse_concat(p);
     while (p->src[p->pos] == '|') {
@@ -237,9 +204,6 @@ static NFAFragment parse_atom(Parser *p) {
     return frag_char(p->nfa, c);
 }
 
-/* ─────────────────────────────────────────────
-   Public: build NFA from regex string
-   ───────────────────────────────────────────── */
 NFA *nfa_from_regex(const char *regex) {
     NFA *nfa    = nfa_create();
     Parser p    = { regex, 0, nfa };
@@ -250,9 +214,6 @@ NFA *nfa_from_regex(const char *regex) {
     return nfa;
 }
 
-/* ─────────────────────────────────────────────
-   Epsilon closure  ε*(S)
-   ───────────────────────────────────────────── */
 static int set_contains(StateSet *s, int id) {
     for (int i = 0; i < s->count; i++)
         if (s->ids[i] == id) return 1;
@@ -288,9 +249,6 @@ StateSet nfa_epsilon_closure(NFA *nfa, int *ids, int count) {
     return result;
 }
 
-/* ─────────────────────────────────────────────
-   Move  move(S, c)
-   ───────────────────────────────────────────── */
 StateSet nfa_move(NFA *nfa, StateSet *set, char c) {
     StateSet result; result.count = 0;
     for (int i = 0; i < set->count; i++) {
@@ -311,9 +269,6 @@ StateSet nfa_move(NFA *nfa, StateSet *set, char c) {
     return result;
 }
 
-/* ─────────────────────────────────────────────
-   Debug printer
-   ───────────────────────────────────────────── */
 void nfa_print(const NFA *nfa) {
     printf("NFA: %d states, start=q%d, accept=q%d\n",
            nfa->state_count, nfa->start->id, nfa->accept->id);

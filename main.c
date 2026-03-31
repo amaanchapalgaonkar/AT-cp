@@ -3,32 +3,29 @@
 #include <string.h>
 #include "tokenizer.h"
 
-/* ═══════════════════════════════════════════════════════════
-   main.c — Automata-Based NLP Tokenization Engine
-   Entry point: reads input, runs tokenizer, prints results.
-   ═══════════════════════════════════════════════════════════ */
-
-/* Demo NLP input covering all token classes */
 static const char *DEMO_INPUT =
-    "Hello world! Contact us at support@example.com or visit https://www.example.com\n"
-    "Follow us on Twitter @nlp_engine and use #AutomataTokenizer\n"
-    "Price: $99.99, release on 2024-01-15. Really? Yes!\n"
-    "user123 sent 42 messages. Email: test.user+tag@domain.org\n";
+    "Hello @john! Email me at support@example.com for details.\n"
+    "Check out https://github.com and follow #NLP on Twitter @nlp_engine\n"
+    "Price: $99.99, available from 2024-01-15 onwards.\n";
 
-/* ─────────────────────────────────────────────
-   Usage: ./tokenizer [input_string]
-   If no argument, runs built-in demo.
-   ───────────────────────────────────────────── */
 int main(int argc, char *argv[]) {
-    printf("======================================================\n");
-    printf("   Automata-Based NLP Tokenization Engine         \n");
-    printf("   Thompson NFA → Subset DFA → Hopcroft Min-DFA   \n");
-    printf("====================================================\n\n");
+    printf("=====================================================\n");
+    printf(" Automata-Based NLP Tokenization Engine\n");
+    printf(" Each token class = Regular Language (DFA)\n");
+    printf(" Recognition Strategy: Longest Match (Maximal Munch)\n");
+    printf("=====================================================\n\n");
+    printf("Token Classes:\n");
+    printf("  - EMAIL: Match [user@domain.com]\n");
+    printf("  - URL: Match [https://example.com]\n");
+    printf("  - HASHTAG: Match [#topic]\n");
+    printf("  - MENTION: Match [@username]\n");
+    printf("  - NUMBER: Match [123] or [45.67]\n");
+    printf("  - WORD: Match [alphabetic sequences]\n");
+    printf("  - PUNCT: Match [.,!?;:\'\"\-]\n");
+    printf("\n");
 
-    /* Choose input: CLI argument or built-in demo */
     const char *input = (argc > 1) ? argv[1] : DEMO_INPUT;
 
-    /* If reading from stdin flag */
     char *stdin_buf = NULL;
     if (argc > 1 && strcmp(argv[1], "-") == 0) {
         size_t cap = 4096, sz = 0;
@@ -49,18 +46,14 @@ int main(int argc, char *argv[]) {
 
     printf("Input:\n------\n%s\n", input);
 
-    /* ── Step 1: Build all DFAs ── */
     printf("Building DFAs from regex patterns...\n");
     tokenizer_init();
     printf("DFA table ready. Token classes: %d\n\n", TOKEN_COUNT);
 
-    /* ── Step 2: Tokenize ── */
     TokenList *tokens = tokenize(input);
 
-    /* ── Step 3: Print results ── */
     token_list_print(tokens);
 
-    /* ── Step 4: Summary by token type ── */
     int counts[TOKEN_COUNT] = {0};
     for (int i = 0; i < tokens->count; i++)
         counts[tokens->tokens[i].type]++;
@@ -71,7 +64,15 @@ int main(int argc, char *argv[]) {
             printf("  %-14s : %d\n", TOKEN_NAMES[t], counts[t]);
     }
 
-    /* ── Cleanup ── */
+    printf("\n");
+    printf("=== FUTURE SCOPE ===\n");
+    printf("  - Support for advanced regex (RFC-compliant emails, URLs)\n");
+    printf("  - Unicode and multilingual tokenization\n");
+    printf("  - DFA serialization for fast startup\n");
+    printf("  - Integration with NLP pipelines (stemming, lemmatization)\n");
+    printf("  - Machine learning-based token classification\n");
+    printf("  - Context-aware disambiguation\n\n");
+
     token_list_free(tokens);
     tokenizer_destroy();
     free(stdin_buf);

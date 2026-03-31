@@ -3,16 +3,6 @@
 #include <string.h>
 #include "dfa.h"
 
-/* ═══════════════════════════════════════════════════════════
-   dfa.c
-   Stage 3 — Subset Construction  (NFA → DFA)
-   Stage 4 — Hopcroft Minimization (DFA → Min-DFA)
-   ═══════════════════════════════════════════════════════════ */
-
-/* ─────────────────────────────────────────────
-   DFA memory management
-   ───────────────────────────────────────────── */
-
 DFA *dfa_create(int token_type) {
     DFA *dfa = calloc(1, sizeof(DFA));
     if (!dfa) { fprintf(stderr, "dfa_create: out of memory\n"); exit(1); }
@@ -43,10 +33,6 @@ DFAState *dfa_new_state(DFA *dfa) {
     dfa->states[dfa->state_count++] = s;
     return s;
 }
-
-/* ─────────────────────────────────────────────
-   Subset Construction helpers
-   ───────────────────────────────────────────── */
 
 #define MAX_SUBSETS 1024
 
@@ -104,26 +90,20 @@ static int set_has_accept(NFA *nfa, StateSet *set) {
     return 0;
 }
 
-/* ─────────────────────────────────────────────
-   Stage 3 — Subset Construction  (NFA → DFA)
-   ───────────────────────────────────────────── */
 DFA *dfa_from_nfa(NFA *nfa, int token_type) {
     DFA *dfa = dfa_create(token_type);
     subset_count = 0;
 
-    /* Start: ε-closure of NFA start state */
     int start_arr[1] = { nfa->start->id };
     StateSet start_set = nfa_epsilon_closure(nfa, start_arr, 1);
 
     int is_new;
     find_or_add_subset(start_set.ids, start_set.count, &is_new);
 
-    /* Worklist (queue of subset indices to process) */
     int worklist[MAX_SUBSETS];
     int wl_head = 0, wl_tail = 0;
     worklist[wl_tail++] = 0;
 
-    /* Pre-create start DFA state */
     DFAState *s0 = dfa_new_state(dfa);
     s0->is_accept  = set_has_accept(nfa, &start_set);
     s0->token_type = s0->is_accept ? token_type : DEAD_STATE;
@@ -132,7 +112,6 @@ DFA *dfa_from_nfa(NFA *nfa, int token_type) {
         int sub_idx  = worklist[wl_head++];
         Subset *sub  = &subsets[sub_idx];
 
-        /* Build a StateSet from this subset's NFA ids */
         StateSet cur_set;
         cur_set.count = sub->count;
         memcpy(cur_set.ids, sub->nfa_ids, sub->count * sizeof(int));
@@ -163,10 +142,6 @@ DFA *dfa_from_nfa(NFA *nfa, int token_type) {
     return dfa;
 }
 
-/* ─────────────────────────────────────────────
-   Stage 4 — Hopcroft's Minimization
-   ───────────────────────────────────────────── */
-
 #define MAX_GROUPS MAX_DFA_STATES
 
 typedef struct {
@@ -187,7 +162,6 @@ DFA *dfa_minimize(DFA *dfa) {
     int n = dfa->state_count;
     if (n == 0) return dfa;
 
-    /* Initial partition: accepting vs non-accepting */
     group_count = 2;
     memset(groups, 0, sizeof(groups));
 
@@ -198,7 +172,6 @@ DFA *dfa_minimize(DFA *dfa) {
             group_add(0, i);
     }
 
-    /* Iteratively refine */
     int changed = 1;
     while (changed) {
         changed = 0;
@@ -219,7 +192,6 @@ DFA *dfa_minimize(DFA *dfa) {
                 }
                 if (!split) continue;
 
-                /* Partition group g */
                 int stay[MAX_DFA_STATES], stay_n = 0;
                 int move[MAX_DFA_STATES], move_n = 0;
 
@@ -248,7 +220,6 @@ DFA *dfa_minimize(DFA *dfa) {
         }
     }
 
-    /* Build minimized DFA */
     DFA *min = dfa_create(dfa->token_type);
     for (int g = 0; g < group_count; g++) {
         if (groups[g].count == 0) continue;
@@ -267,9 +238,7 @@ DFA *dfa_minimize(DFA *dfa) {
     return min;
 }
 
-/* ─────────────────────────────────────────────
-   Build all token DFAs
-   ───────────────────────────────────────────── */
+
 DFATable *dfa_table_build(void) {
     DFATable *table = calloc(1, sizeof(DFATable));
     if (!table) { fprintf(stderr, "dfa_table_build: out of memory\n"); exit(1); }
@@ -290,9 +259,6 @@ void dfa_table_free(DFATable *table) {
     free(table);
 }
 
-/* ─────────────────────────────────────────────
-   DFA simulation — longest match from input[offset]
-   ───────────────────────────────────────────── */
 int dfa_simulate(DFA *dfa, const char *input, int offset) {
     int cur              = dfa->start;
     int last_accept_len  = 0;
@@ -314,9 +280,6 @@ int dfa_simulate(DFA *dfa, const char *input, int offset) {
     return last_accept_len;
 }
 
-/* ─────────────────────────────────────────────
-   Debug printer
-   ───────────────────────────────────────────── */
 void dfa_print(const DFA *dfa) {
     printf("DFA: %d states, start=q%d, token=%d\n",
            dfa->state_count, dfa->start, dfa->token_type);
