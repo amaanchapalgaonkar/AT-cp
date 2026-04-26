@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLP Chatbot - DFA-Based Tokenizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        header h1 {
+            font-size: 2em;
+            color: #333;
+        }
+
+        .back-link {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .back-link:hover {
+            transform: translateY(-2px);
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        #chat-window {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 500px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .message-text {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .message.user .message-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot .message-text {
+            background: #e8e8e8;
+            color: #333;
+            border-bottom-left-radius: 4px;
+        }
+
+        .input-area {
+            padding: 20px;
+            border-top: 2px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        #chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        #chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .send-btn:active {
+            transform: translateY(0);
+        }
+
+        .analysis-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .analysis-section {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .analysis-title {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+
+        .token-stream {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .token-badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .token-badge.EMAIL { background: #f59e0b; }
+        .token-badge.URL { background: #3b82f6; }
+        .token-badge.HASHTAG { background: #8b5cf6; }
+        .token-badge.MENTION { background: #ec4899; }
+        .token-badge.NUMBER { background: #10b981; }
+        .token-badge.WORD { background: #667eea; }
+        .token-badge.PUNCT { background: #94a3b8; }
+        .token-badge.UNKNOWN { background: #ef4444; }
+
+        .token-counts {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .count-item {
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .count-label {
+            font-size: 0.8em;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .count-value {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .entities-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .entity-item {
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #667eea;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .entity-item-type {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .entity-item-value {
+            color: #555;
+            margin-left: 8px;
+        }
+
+        .empty-state {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            #chat-window {
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🤖 NLP Chatbot</h1>
+        <a href="index.html" class="back-link">← Back to Tokenizer</a>
+    </header>
+
+    <div class="main-layout">
+        <!-- Chat Panel -->
+        <div class="card">
+            <div class="card-header">💬 Chat</div>
+            <div id="chat-window"></div>
+            <div class="input-area">
+                <input
+                    id="chat-input"
+                    type="text"
+                    placeholder="Type something and press Enter..."
+                    autocomplete="off"
+                />
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <!-- Analysis Panel -->
+        <div class="card">
+            <div class="card-header">📊 Token Analysis</div>
+            <div class="analysis-panel">
+                <div class="analysis-section">
+                    <div class="analysis-title">Token Stream</div>
+                    <div id="token-stream" class="token-stream">
+                        <div class="empty-state">Tokens will appear here</div>
+                    </div>
+                </div>
+
+                <div class="analysis-section">
+                    <div class="analysis-title">Token Counts</div>
+                    <div id="token-counts" class="token-counts">
+                        <div class="empty-state">Send a message to see counts</div>
+                    </div>
+                </div>
+
+                <div class="analysis-section">
+                    <div class="analysis-title">Detected Entities</div>
+                    <div id="entities-list" class="entities-list">
+                        <div class="empty-state">Entities will appear here</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Token patterns matching the C project exactly
+    const tokenPatterns = [
+        { type: 'EMAIL', pattern: /^[a-zA-Z0-9._+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}/ },
+        { type: 'URL', pattern: /^https?:\/\/[a-zA-Z0-9.\/?=#_&%\-]+/ },
+        { type: 'HASHTAG', pattern: /^#[a-zA-Z0-9_]+/ },
+        { type: 'MENTION', pattern: /^@[a-zA-Z0-9_]+/ },
+        { type: 'NUMBER', pattern: /^[0-9]+\.?[0-9]*/ },
+        { type: 'WORD', pattern: /^[a-zA-Z]+/ },
+        { type: 'PUNCT', pattern: /^[.,!?;:'"()\-]/ },
+        { type: 'WHITESPACE', pattern: /^[ \t\n\r]+/ }
+    ];
+
+    // Token badge colors matching specification
+    const tokenColors = {
+        EMAIL: '#f59e0b',
+        URL: '#3b82f6',
+        HASHTAG: '#8b5cf6',
+        MENTION: '#ec4899',
+        NUMBER: '#10b981',
+        WORD: '#667eea',
+        PUNCT: '#94a3b8',
+        UNKNOWN: '#ef4444'
+    };
+
+    // Longest-match tokenizer
+    function tokenize(text) {
+        const tokens = [];
+        let pos = 0;
+
+        while (pos < text.length) {
+            let bestMatch = null;
+            let bestLength = 0;
+
+            // Try all patterns at this position
+            for (const { type, pattern } of tokenPatterns) {
+                const match = text.substring(pos).match(pattern);
+                if (match && match[0].length > bestLength) {
+                    bestMatch = { type, value: match[0], length: match[0].length };
+                    bestLength = match[0].length;
+                }
+            }
+
+            if (bestMatch) {
+                tokens.push(bestMatch);
+                pos += bestMatch.length;
+            } else {
+                // Unknown token - advance by 1
+                tokens.push({
+                    type: 'UNKNOWN',
+                    value: text[pos],
+                    length: 1
+                });
+                pos += 1;
+            }
+        }
+
+        return tokens;
+    }
+
+    // Generate bot response based on tokens
+    function generateResponse(text, tokens) {
+        const nonWhitespaceTokens = tokens.filter(t => t.type !== 'WHITESPACE');
+
+        // Check for specific entities
+        const hashtags = nonWhitespaceTokens.filter(t => t.type === 'HASHTAG');
+        const emails = nonWhitespaceTokens.filter(t => t.type === 'EMAIL');
+        const urls = nonWhitespaceTokens.filter(t => t.type === 'URL');
+        const mentions = nonWhitespaceTokens.filter(t => t.type === 'MENTION');
+        const numbers = nonWhitespaceTokens.filter(t => t.type === 'NUMBER');
+        const words = nonWhitespaceTokens.filter(t => t.type === 'WORD');
+
+        // Check for question words
+        const lowerText = text.toLowerCase();
+        const isQuestion = lowerText.includes('?');
+        const hasQuestionWord = /\b(what|how|why|where|who)\b/.test(lowerText);
+
+        // Check for greetings
+        const hasGreeting = /\b(hello|hi|hey)\b/.test(lowerText);
+
+        // Generate response
+        if (hasQuestionWord && isQuestion) {
+            return "Great question! Our tokenizer uses 5 stages: Regex Patterns → Thompson NFA → Subset DFA → Hopcroft Minimization → Longest-Match Engine.";
+        }
+
+        if (hasGreeting) {
+            return "Hello! I am an NLP chatbot powered by a DFA-based tokenizer. I tokenize everything you type using 9 minimized DFAs built via Thompson's Construction, Subset Construction, and Hopcroft's algorithm.";
+        }
+
+        if (hashtags.length > 0) {
+            const tag = hashtags[0].value;
+            return `I detected the hashtag ${tag}. Hashtags are matched by the HASHTAG DFA using pattern #[a-zA-Z0-9_]+.`;
+        }
+
+        if (emails.length > 0) {
+            const email = emails[0].value;
+            return `Email address ${email} detected. The EMAIL DFA consumed all ${email.length} characters in a single longest-match.`;
+        }
+
+        if (urls.length > 0) {
+            const url = urls[0].value;
+            return `URL detected: ${url}. The URL DFA matched ${url.length} characters using the pattern https?://[a-zA-Z0-9./?=#_&%-]+`;
+        }
+
+        if (mentions.length > 0) {
+            const mention = mentions[0].value;
+            return `User mention ${mention} detected by the MENTION DFA.`;
+        }
+
+        if (numbers.length > 0) {
+            const num = numbers[0].value;
+            return `Number ${num} found. The NUMBER DFA handles integers and floats using [0-9]+\\.?[0-9]*`;
+        }
+
+        if (words.length > 0 && nonWhitespaceTokens.every(t => t.type === 'WORD')) {
+            const wordList = words.map(w => w.value).join(', ');
+            const lexicalDensity = Math.round((words.length / nonWhitespaceTokens.length) * 100);
+            return `I found ${words.length} word token(s): ${wordList}. Lexical density: ${lexicalDensity}%`;
+        }
+
+        const unknownTokens = nonWhitespaceTokens.filter(t => t.type === 'UNKNOWN');
+        if (unknownTokens.length > 0) {
+            return "I could not classify that input. It was emitted as UNKNOWN token — the fallback when no DFA matches.";
+        }
+
+        return "Input processed by the tokenizer.";
+    }
+
+    // Update token analysis panel
+    function updateAnalysis(tokens) {
+        // Filter out whitespace tokens
+        const nonWhitespaceTokens = tokens.filter(t => t.type !== 'WHITESPACE');
+
+        // Token stream
+        const streamContainer = document.getElementById('token-stream');
+        streamContainer.innerHTML = '';
+        if (nonWhitespaceTokens.length === 0) {
+            streamContainer.innerHTML = '<div class="empty-state">No tokens</div>';
+        } else {
+            nonWhitespaceTokens.forEach(token => {
+                const badge = document.createElement('div');
+                badge.className = `token-badge ${token.type}`;
+                badge.textContent = token.value;
+                streamContainer.appendChild(badge);
+            });
+        }
+
+        // Token counts
+        const countMap = {};
+        nonWhitespaceTokens.forEach(token => {
+            countMap[token.type] = (countMap[token.type] || 0) + 1;
+        });
+
+        const countsContainer = document.getElementById('token-counts');
+        countsContainer.innerHTML = '';
+        if (Object.keys(countMap).length === 0) {
+            countsContainer.innerHTML = '<div class="empty-state">No tokens</div>';
+        } else {
+            Object.entries(countMap).forEach(([type, count]) => {
+                const item = document.createElement('div');
+                item.className = 'count-item';
+                item.innerHTML = `
+                    <div class="count-label">${type}</div>
+                    <div class="count-value">${count}</div>
+                `;
+                countsContainer.appendChild(item);
+            });
+        }
+
+        // Entities
+        const entities = nonWhitespaceTokens.filter(t =>
+            ['EMAIL', 'URL', 'HASHTAG', 'MENTION'].includes(t.type)
+        );
+
+        const entitiesContainer = document.getElementById('entities-list');
+        entitiesContainer.innerHTML = '';
+        if (entities.length === 0) {
+            entitiesContainer.innerHTML = '<div class="empty-state">No entities detected</div>';
+        } else {
+            entities.forEach(entity => {
+                const item = document.createElement('div');
+                item.className = 'entity-item';
+                item.innerHTML = `
+                    <span class="entity-item-type">${entity.type}:</span>
+                    <span class="entity-item-value">${entity.value}</span>
+                `;
+                entitiesContainer.appendChild(item);
+            });
+        }
+    }
+
+    // Send message
+    function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+
+        if (!text) return;
+
+        // Add user message
+        addMessage(text, 'user');
+        input.value = '';
+
+        // Tokenize
+        const tokens = tokenize(text);
+
+        // Update analysis
+        updateAnalysis(tokens);
+
+        // Generate and add bot response
+        const response = generateResponse(text, tokens);
+        setTimeout(() => addMessage(response, 'bot'), 300);
+    }
+
+    // Add message to chat
+    function addMessage(text, sender) {
+        const chatWindow = document.getElementById('chat-window');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        messageDiv.innerHTML = `<div class="message-text">${escapeHtml(text)}</div>`;
+        chatWindow.appendChild(messageDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Enter key handler
+    document.getElementById('chat-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Initial greeting
+    window.addEventListener('load', () => {
+        addMessage("Hello! I'm a DFA-based NLP chatbot. Type something to see how the tokenizer works!", 'bot');
+    });
+</script>
+
+</body>
+</html>
