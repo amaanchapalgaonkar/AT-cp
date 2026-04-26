@@ -1,24 +1,813 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>NLP Tokenizer Chatbot</title>
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; }
-    input { width: 80%; padding: 10px; }
-    button { padding: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automata-Based NLP Tokenizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .input-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        #input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tokens-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .tokens-table thead {
+            background: #f5f5f5;
+        }
+
+        .tokens-table th,
+        .tokens-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .tokens-table th {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .tokens-table tr:hover {
+            background: #f9f9f9;
+        }
+
+        .token-type {
+            font-weight: 600;
+            color: #667eea;
+            padding: 4px 8px;
+            background: #f0f4ff;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .token-value {
+            color: #555;
+            font-family: 'Courier New', monospace;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        .chatbot-response {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Token Bar Chart Styles */
+        #token-bar-chart {
+            margin: 25px 0;
+            padding: 20px 0;
+            border-top: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .bar-chart-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .bar-chart-badge {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            font-size: 0.85em;
+            min-width: 70px;
+        }
+
+        .bar-chart-container {
+            flex: 1;
+            background: #f0f0f0;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-chart-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+
+        .bar-chart-count {
+            font-size: 0.85em;
+            color: #999;
+            font-weight: 600;
+            min-width: 30px;
+            text-align: right;
+        }
+
+        /* Entity List Styles */
+        #entity-list {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .entity-list-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+
+        .entity-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .entity-badge {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            font-size: 0.85em;
+            flex-shrink: 0;
+        }
+
+        .entity-value {
+            color: #555;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .entity-empty {
+            color: #999;
+            font-style: italic;
+            font-size: 0.95em;
+        }
+
+        /* Automata Steps Card Styles */
+        .full-width-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .full-width-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .full-width-card h2 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .steps-container {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .step-box {
+            flex: 1;
+            min-width: 180px;
+            background: linear-gradient(135deg, #f0f4ff 0%, #f5ebff 100%);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            border: 1px solid #e0d4ff;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.85em;
+            margin-bottom: 12px;
+        }
+
+        .step-icon {
+            font-size: 2em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .step-title {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .step-file {
+            font-family: 'Courier New', monospace;
+            font-size: 0.75em;
+            color: #764ba2;
+            margin-bottom: 12px;
+            word-break: break-word;
+        }
+
+        .step-body {
+            color: #555;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+
+        .step-arrow {
+            display: none;
+            align-self: center;
+            color: #667eea;
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .steps-container {
+                flex-direction: column;
+            }
+
+            .step-arrow {
+                display: none;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .steps-container {
+                justify-content: center;
+            }
+
+            .step-arrow {
+                display: block;
+            }
+        }
+
+        /* Token Stream Styles */
+        .token-highlight {
+            padding: 6px 10px;
+            border-radius: 6px;
+            position: relative;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 4px 0 4px;
+            min-height: 40px;
+        }
+
+        .token-superscript {
+            font-size: 0.75em;
+            font-weight: 700;
+            white-space: nowrap;
+            opacity: 0.9;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        #token-stream-content {
+            font-family: 'Courier New', monospace;
+            font-size: 1.05em;
+            color: #333;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 20px 0;
+        }
+    </style>
 </head>
 <body>
 
-<h2>Automata-Based NLP Tokenizer</h2>
+<div class="container">
+    <header>
+        <h1>Automata-Based NLP Tokenizer</h1>
+        <p>DFA-Powered Token Recognition with Longest-Match Strategy</p>
+    </header>
 
-<div id="chat"></div>
+    <div class="input-section">
+        <div class="input-group">
+            <input
+                id="input"
+                type="text"
+                placeholder="Enter text to tokenize... (e.g., 'Email me at john@example.com or visit https://github.com')"
+            />
+            <button onclick="send()">Tokenize</button>
+        </div>
+    </div>
 
-<input id="input" placeholder="Type a message..." />
-<button onclick="send()">Send</button>
+    <div class="card" id="token-stream-view" style="display: none; margin-bottom: 30px;">
+        <h2>🎯 Token Stream</h2>
+        <div id="token-stream-content" style="line-height: 2; word-wrap: break-word;"></div>
+    </div>
 
-<script src="script.js"></script>
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Processing tokens...</p>
+    </div>
+
+    <div class="content" id="content" style="display: none;">
+        <div class="card">
+            <h2>📊 Token Recognition</h2>
+            <table class="tokens-table" id="tokensTable">
+                <thead>
+                    <tr>
+                        <th>Token Type</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody id="tokenRows">
+                    <tr>
+                        <td colspan="2" class="empty-state">No tokens yet. Enter text above.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div id="token-bar-chart" style="display: none;"></div>
+            <div class="stats-grid" id="statsGrid" style="display: none;">
+                <div class="stat-box">
+                    <div class="stat-label">Total Tokens</div>
+                    <div class="stat-value" id="totalTokens">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Unique Values</div>
+                    <div class="stat-value" id="uniqueValues">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>💬 NLP Analysis</h2>
+            <div class="chatbot-response" id="chatbotResponse">
+                Ready for tokenization...
+            </div>
+            <div id="entity-list" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="full-width-card" id="automata-card" style="display: none;">
+        <h2>⚙️ How This Is Automata-Based</h2>
+        <div class="steps-container">
+            <div class="step-box">
+                <div class="step-number">1</div>
+                <div class="step-icon">📝</div>
+                <div class="step-title">Regex Patterns</div>
+                <div class="step-file">token_patterns.h</div>
+                <div class="step-body">9 token classes defined as regular expressions. Each pattern describes a regular language recognized by a finite automaton.</div>
+            </div>
+
+            <div class="step-arrow">→</div>
+
+            <div class="step-box">
+                <div class="step-number">2</div>
+                <div class="step-icon">🔀</div>
+                <div class="step-title">Thompson's NFA</div>
+                <div class="step-file">nfa.c → nfa_from_regex()</div>
+                <div class="step-body">Each regex converted to NFA using fragment composition: union, concatenation, and Kleene star operations.</div>
+            </div>
+
+            <div class="step-arrow">→</div>
+
+            <div class="step-box">
+                <div class="step-number">3</div>
+                <div class="step-icon">➡️</div>
+                <div class="step-title">Subset Construction</div>
+                <div class="step-file">dfa.c → dfa_from_nfa()</div>
+                <div class="step-body">NFA converted to DFA. Each DFA state represents a set of NFA states computed via ε-closure and move operations.</div>
+            </div>
+
+            <div class="step-arrow">→</div>
+
+            <div class="step-box">
+                <div class="step-number">4</div>
+                <div class="step-icon">✂️</div>
+                <div class="step-title">Hopcroft Minimization</div>
+                <div class="step-file">dfa.c → dfa_minimize()</div>
+                <div class="step-body">Indistinguishable states merged using partition refinement. Result: smallest possible DFA for each token class.</div>
+            </div>
+
+            <div class="step-arrow">→</div>
+
+            <div class="step-box">
+                <div class="step-number">5</div>
+                <div class="step-icon">⚡</div>
+                <div class="step-title">Longest-Match Engine</div>
+                <div class="step-file">tokenizer.c → tokenize()</div>
+                <div class="step-body">All 9 DFAs run at every position. Longest match wins. O(n) time complexity. No backtracking needed.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Color mapping for token types (matches badges in token table)
+    const tokenColors = {
+        'WORD': { bg: '#f0f4ff', fg: '#667eea' },
+        'NUMBER': { bg: '#fff4e6', fg: '#ff9800' },
+        'EMAIL': { bg: '#f3e5f5', fg: '#9c27b0' },
+        'URL': { bg: '#e0f2f1', fg: '#009688' },
+        'HASHTAG': { bg: '#fce4ec', fg: '#e91e63' },
+        'MENTION': { bg: '#e3f2fd', fg: '#2196f3' },
+        'UNKNOWN': { bg: '#eeeeee', fg: '#757575' },
+        'WHITESPACE': { bg: '#f5f5f5', fg: '#999999' }
+    };
+
+    function send() {
+        const text = document.getElementById("input").value;
+
+        if (!text.trim()) {
+            alert("Please enter some text to tokenize.");
+            return;
+        }
+
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("content").style.display = "none";
+        document.getElementById("automata-card").style.display = "none";
+        document.getElementById("token-stream-view").style.display = "none";
+
+        fetch("http://127.0.0.1:5000/tokenize", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ text: text })
+        })
+        .then(res => res.json())
+        .then(data => {
+            displayResults(data, text);
+        })
+        .catch(err => {
+            console.error("Error:", err);
+            alert("Error connecting to tokenizer. Make sure Flask is running.");
+            document.getElementById("loading").style.display = "none";
+        });
+    }
+
+    function displayResults(data, originalText) {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("content").style.display = "grid";
+        document.getElementById("automata-card").style.display = "block";
+
+        const tokens = data.tokens || [];
+        const response = data.response || "No response.";
+
+        if (tokens.length === 0) {
+            document.getElementById("tokenRows").innerHTML =
+                '<tr><td colspan="2" class="empty-state">No tokens found.</td></tr>';
+            document.getElementById("statsGrid").style.display = "none";
+            document.getElementById("token-bar-chart").style.display = "none";
+            document.getElementById("entity-list").style.display = "none";
+            document.getElementById("token-stream-view").style.display = "none";
+        } else {
+            renderTokensTable(tokens);
+            renderStats(tokens);
+            renderTokenBarChart(tokens);
+            renderEntityList(tokens);
+            renderTokenStream(tokens, originalText);
+        }
+
+        document.getElementById("chatbotResponse").textContent = response;
+    }
+
+    function renderTokensTable(tokens) {
+        const tbody = document.getElementById("tokenRows");
+        tbody.innerHTML = "";
+
+        tokens.forEach(token => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td><span class="token-type">${escapeHtml(token.type)}</span></td>
+                <td><span class="token-value">${escapeHtml(token.value)}</span></td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    function renderStats(tokens) {
+        const uniqueValues = new Set(tokens.map(t => t.value)).size;
+        document.getElementById("totalTokens").textContent = tokens.length;
+        document.getElementById("uniqueValues").textContent = uniqueValues;
+        document.getElementById("statsGrid").style.display = "grid";
+    }
+
+    function renderTokenBarChart(tokens) {
+        // Count tokens by type, skip WHITESPACE
+        const typeCounts = {};
+        tokens.forEach(token => {
+            if (token.type !== 'WHITESPACE') {
+                typeCounts[token.type] = (typeCounts[token.type] || 0) + 1;
+            }
+        });
+
+        const types = Object.keys(typeCounts);
+        if (types.length === 0) {
+            document.getElementById("token-bar-chart").style.display = "none";
+            return;
+        }
+
+        // Find max count for proportional bar widths
+        const maxCount = Math.max(...Object.values(typeCounts));
+
+        // Create bar chart HTML
+        let chartHTML = '';
+        types.forEach(type => {
+            const count = typeCounts[type];
+            const percentage = (count / maxCount) * 100;
+            const colors = tokenColors[type] || tokenColors['UNKNOWN'];
+
+            chartHTML += `
+                <div class="bar-chart-row">
+                    <span class="bar-chart-badge" style="background: ${colors.bg}; color: ${colors.fg};">
+                        ${escapeHtml(type)}
+                    </span>
+                    <div class="bar-chart-container">
+                        <div class="bar-chart-fill" style="width: ${percentage}%; background: ${colors.fg};"></div>
+                    </div>
+                    <div class="bar-chart-count">${count}</div>
+                </div>
+            `;
+        });
+
+        document.getElementById("token-bar-chart").innerHTML = chartHTML;
+        document.getElementById("token-bar-chart").style.display = "block";
+    }
+
+    function renderEntityList(tokens) {
+        // Filter entities: EMAIL, URL, HASHTAG, MENTION
+        const entities = tokens.filter(token =>
+            ['EMAIL', 'URL', 'HASHTAG', 'MENTION'].includes(token.type)
+        );
+
+        const entityContainer = document.getElementById("entity-list");
+
+        if (entities.length === 0) {
+            entityContainer.innerHTML = `
+                <div class="entity-list-title">Detected Entities</div>
+                <div class="entity-empty">No named entities found</div>
+            `;
+            entityContainer.style.display = "block";
+            return;
+        }
+
+        let entityHTML = '<div class="entity-list-title">Detected Entities</div>';
+        entities.forEach(entity => {
+            const colors = tokenColors[entity.type] || tokenColors['UNKNOWN'];
+            entityHTML += `
+                <div class="entity-row">
+                    <span class="entity-badge" style="background: ${colors.bg}; color: ${colors.fg};">
+                        ${escapeHtml(entity.type)}
+                    </span>
+                    <span class="entity-value">${escapeHtml(entity.value)}</span>
+                </div>
+            `;
+        });
+
+        entityContainer.innerHTML = entityHTML;
+        entityContainer.style.display = "block";
+    }
+
+    function renderTokenStream(tokens, originalText) {
+        const streamContainer = document.getElementById("token-stream-content");
+        streamContainer.innerHTML = "";
+
+        // Render tokens with highlighting, skip WHITESPACE
+        tokens.forEach(token => {
+            if (token.type === 'WHITESPACE') {
+                // Skip whitespace tokens in stream view
+                return;
+            }
+
+            // Create highlighted span for non-whitespace tokens
+            const span = document.createElement("span");
+            span.className = "token-highlight";
+
+            const colors = tokenColors[token.type] || tokenColors['UNKNOWN'];
+            span.style.backgroundColor = colors.bg;
+            span.style.color = colors.fg;
+
+            // Create the type label (displayed above token)
+            const label = document.createElement("div");
+            label.className = "token-superscript";
+            label.textContent = token.type;
+
+            // Create the token value
+            const value = document.createElement("div");
+            value.textContent = token.value;
+            value.style.fontWeight = "600";
+
+            // Add label and value to span
+            span.appendChild(label);
+            span.appendChild(value);
+
+            streamContainer.appendChild(span);
+        });
+
+        // Show the token stream view
+        document.getElementById("token-stream-view").style.display = "block";
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Allow Enter key to trigger tokenization
+    document.getElementById("input").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") {
+            send();
+        }
+    });
+</script>
 
 </body>
 </html>

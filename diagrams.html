@@ -276,20 +276,20 @@
                 <div class="diagram-title">Step 1: Simple NFA (Local Part)</div>
                 <div class="mermaid">
 graph LR
-    A((q0)):::start -->|'a'-'z'| B((q1)):::accepting
-    A -->|'A'-'Z'| B
-    A -->|'0'-'9'| B
-    A -->|'.'| B
-    A -->|'_'| B
-    A -->|'+'| B
-    A -->|'-'| B
-    B -->|'a'-'z'| B
-    B -->|'A'-'Z'| B
-    B -->|'0'-'9'| B
-    B -->|'.'| B
-    B -->|'_'| B
-    B -->|'+'| B
-    B -->|'-'| B
+    A((q0)):::start -->|"a-z"| B((q1)):::accepting
+    A -->|"A-Z"| B
+    A -->|"0-9"| B
+    A -->|"."| B
+    A -->|"_"| B
+    A -->|"+"| B
+    A -->|"-"| B
+    B -->|"a-z"| B
+    B -->|"A-Z"| B
+    B -->|"0-9"| B
+    B -->|"."| B
+    B -->|"_"| B
+    B -->|"+"| B
+    B -->|"-"| B
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -300,25 +300,25 @@ graph LR
                 <div class="diagram-title">Step 2: Combined NFA</div>
                 <div class="mermaid">
 graph LR
-    A((q0)):::start -->|'a'-'z'| B((q1))
-    A -->|'A'-'Z'| B
-    A -->|'0'-'9'| B
-    A -->|'.'| B
-    A -->|'_'| B
-    A -->|'+'| B
-    A -->|'-'| B
-    B -->|same| B
-    B -->|'@'| C((q2))
-    C -->|'a'-'z'| D((q3))
-    C -->|'A'-'Z'| D
-    C -->|'0'-'9'| D
-    C -->|'-'| D
-    D -->|same| D
-    D -->|'.'| E((q4))
-    E -->|'a'-'z'| F((q5)):::accepting
-    E -->|'A'-'Z'| F
-    F -->|'a'-'z'| F
-    F -->|'A'-'Z'| F
+    A((q0)):::start -->|"a-z"| B((q1))
+    A -->|"A-Z"| B
+    A -->|"0-9"| B
+    A -->|"."| B
+    A -->|"_"| B
+    A -->|"+"| B
+    A -->|"-"| B
+    B -->|"a-z,A-Z,0-9,._+-"| B
+    B -->|"@"| C((q2))
+    C -->|"a-z"| D((q3))
+    C -->|"A-Z"| D
+    C -->|"0-9"| D
+    C -->|"-"| D
+    D -->|"a-z,A-Z,0-9,-"| D
+    D -->|"."| E((q4))
+    E -->|"a-z"| F((q5)):::accepting
+    E -->|"A-Z"| F
+    F -->|"a-z"| F
+    F -->|"A-Z"| F
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -341,13 +341,13 @@ graph LR
                 <div class="diagram-title">Step 1: Protocol NFA</div>
                 <div class="mermaid">
 graph LR
-    A((q0)):::start -->|'h'| B((q1))
-    B -->|'t'| C((q2))
-    C -->|'t'| D((q3))
-    D -->|'p'| E((q4))
-    E -->|'s'| F((q5))
-    E -->|ε| G((q6)):::accepting
-    F -->|ε| G
+    A((q0)):::start -->|"h"| B((q1))
+    B -->|"t"| C((q2))
+    C -->|"t"| D((q3))
+    D -->|"p"| E((q4))
+    E -->|"s"| F((q5))
+    E -->|"eps"| G((q6)):::accepting
+    F -->|"eps"| G
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -358,28 +358,20 @@ graph LR
                 <div class="diagram-title">Step 2: Complete URL NFA</div>
                 <div class="mermaid">
 graph LR
-    A((q0)):::start -->|'h'| B((q1))
-    B -->|'t'| C((q2))
-    C -->|'t'| D((q3))
-    D -->|'p'| E((q4))
-    E -->|'s'?| F((q5))
-    F -->|':'| G((q6))
-    G -->|'/'| H((q7))
-    H -->|'/'| I((q8))
-    I -->|'a'-'z'| J((q9))
-    I -->|'A'-'Z'| J
-    I -->|'0'-'9'| J
-    I -->|'.'| J
-    J -->|same| J
-    J -->|'/'| J
-    J -->|'?'| J
-    J -->|'='| J
-    J -->|'#'| J
-    J -->|'_'| J
-    J -->|'&'| J
-    J -->|'%'| J
-    J -->|'-'| J
-    J -->|ε| K((q10)):::accepting
+    A((q0)):::start -->|"h"| B((q1))
+    B -->|"t"| C((q2))
+    C -->|"t"| D((q3))
+    D -->|"p"| E((q4))
+    E -->|"s"| F((q5))
+    F -->|":"| G((q6))
+    G -->|"/"| H((q7))
+    H -->|"/"| I((q8))
+    I -->|"a-z"| J((q9))
+    I -->|"A-Z"| J
+    I -->|"0-9"| J
+    I -->|"."| J
+    J -->|"a-z,A-Z,0-9,.,/,?,=,#,_,&,%,-"| J
+    J -->|"eps"| K((q10)):::accepting
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -402,16 +394,16 @@ graph LR
                 <div class="diagram-title">NFA (Thompson's Construction)</div>
                 <div class="mermaid">
 graph LR
-    A((q0)):::start -->|'#'| B((q1))
-    B -->|'a'-'z'| C((q2))
-    B -->|'A'-'Z'| C
-    B -->|'0'-'9'| C
-    B -->|'_'| C
-    C -->|'a'-'z'| C
-    C -->|'A'-'Z'| C
-    C -->|'0'-'9'| C
-    C -->|'_'| C
-    C -->|ε| D((q3)):::accepting
+    A((q0)):::start -->|"#"| B((q1))
+    B -->|"a-z"| C((q2))
+    B -->|"A-Z"| C
+    B -->|"0-9"| C
+    B -->|"_"| C
+    C -->|"a-z"| C
+    C -->|"A-Z"| C
+    C -->|"0-9"| C
+    C -->|"_"| C
+    C -->|"eps"| D((q3)):::accepting
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -422,15 +414,15 @@ graph LR
                 <div class="diagram-title">DFA (After Subset Construction)</div>
                 <div class="mermaid">
 graph LR
-    A((0)):::start -->|'#'| B((1))
-    B -->|'a'-'z'| C((2)):::accepting
-    B -->|'A'-'Z'| C
-    B -->|'0'-'9'| C
-    B -->|'_'| C
-    C -->|'a'-'z'| C
-    C -->|'A'-'Z'| C
-    C -->|'0'-'9'| C
-    C -->|'_'| C
+    A((q0)):::start -->|"#"| B((q1))
+    B -->|"a-z"| C((q2)):::accepting
+    B -->|"A-Z"| C
+    B -->|"0-9"| C
+    B -->|"_"| C
+    C -->|"a-z"| C
+    C -->|"A-Z"| C
+    C -->|"0-9"| C
+    C -->|"_"| C
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -453,16 +445,16 @@ graph LR
                 <div class="diagram-title">NFA</div>
                 <div class="mermaid">
 graph LR
-    A((q0)):::start -->|'@'| B((q1))
-    B -->|'a'-'z'| C((q2))
-    B -->|'A'-'Z'| C
-    B -->|'0'-'9'| C
-    B -->|'_'| C
-    C -->|'a'-'z'| C
-    C -->|'A'-'Z'| C
-    C -->|'0'-'9'| C
-    C -->|'_'| C
-    C -->|ε| D((q3)):::accepting
+    A((q0)):::start -->|"@"| B((q1))
+    B -->|"a-z"| C((q2))
+    B -->|"A-Z"| C
+    B -->|"0-9"| C
+    B -->|"_"| C
+    C -->|"a-z"| C
+    C -->|"A-Z"| C
+    C -->|"0-9"| C
+    C -->|"_"| C
+    C -->|"eps"| D((q3)):::accepting
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -472,15 +464,15 @@ graph LR
                 <div class="diagram-title">Minimized DFA</div>
                 <div class="mermaid">
 graph LR
-    A((0)):::start -->|'@'| B((1))
-    B -->|'a'-'z'| C((2)):::accepting
-    B -->|'A'-'Z'| C
-    B -->|'0'-'9'| C
-    B -->|'_'| C
-    C -->|'a'-'z'| C
-    C -->|'A'-'Z'| C
-    C -->|'0'-'9'| C
-    C -->|'_'| C
+    A((q0)):::start -->|"@"| B((q1))
+    B -->|"a-z"| C((q2)):::accepting
+    B -->|"A-Z"| C
+    B -->|"0-9"| C
+    B -->|"_"| C
+    C -->|"a-z"| C
+    C -->|"A-Z"| C
+    C -->|"0-9"| C
+    C -->|"_"| C
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -502,12 +494,12 @@ graph LR
                 <div class="diagram-title">NFA (Integer or Decimal)</div>
                 <div class="mermaid">
 graph LR
-    A((q0)):::start -->|'0'-'9'| B((q1))
-    B -->|'0'-'9'| B
-    B -->|'.'| C((q2))
-    B -->|ε| D((q3)):::accepting
-    C -->|'0'-'9'| E((q4)):::accepting
-    E -->|'0'-'9'| E
+    A((q0)):::start -->|"0-9"| B((q1))
+    B -->|"0-9"| B
+    B -->|"."| C((q2))
+    B -->|"eps"| D((q3)):::accepting
+    C -->|"0-9"| E((q4)):::accepting
+    E -->|"0-9"| E
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -518,11 +510,11 @@ graph LR
                 <div class="diagram-title">DFA (Subset Construction)</div>
                 <div class="mermaid">
 graph LR
-    A((0)):::start -->|'0'-'9'| B((1)):::accepting
-    B -->|'0'-'9'| B
-    B -->|'.'| C((2))
-    C -->|'0'-'9'| D((3)):::accepting
-    D -->|'0'-'9'| D
+    A((q0)):::start -->|"0-9"| B((q1)):::accepting
+    B -->|"0-9"| B
+    B -->|"."| C((q2))
+    C -->|"0-9"| D((q3)):::accepting
+    D -->|"0-9"| D
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -545,11 +537,11 @@ graph LR
                 <div class="diagram-title">NFA</div>
                 <div class="mermaid">
 graph LR
-    A((q0)):::start -->|'a'-'z'| B((q1))
-    A -->|'A'-'Z'| B
-    B -->|'a'-'z'| B
-    B -->|'A'-'Z'| B
-    B -->|ε| C((q2)):::accepting
+    A((q0)):::start -->|"a-z"| B((q1))
+    A -->|"A-Z"| B
+    B -->|"a-z"| B
+    B -->|"A-Z"| B
+    B -->|"eps"| C((q2)):::accepting
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -559,10 +551,10 @@ graph LR
                 <div class="diagram-title">Minimized DFA</div>
                 <div class="mermaid">
 graph LR
-    A((0)):::start -->|'a'-'z'| B((1)):::accepting
-    A -->|'A'-'Z'| B
-    B -->|'a'-'z'| B
-    B -->|'A'-'Z'| B
+    A((q0)):::start -->|"a-z"| B((q1)):::accepting
+    A -->|"A-Z"| B
+    B -->|"a-z"| B
+    B -->|"A-Z"| B
     classDef start fill:#90EE90
     classDef accepting fill:#FFB6C6
                 </div>
@@ -613,16 +605,16 @@ graph LR
         <p style="color: #666; margin-bottom: 20px;">
             When converting NFA to DFA, we use ε-closure to group states reachable via ε-transitions:
         </p>
-        
+
         <div class="diagrams-container">
             <div class="diagram-box">
                 <div class="diagram-title">NFA with ε-transitions</div>
                 <div class="mermaid">
 graph LR
-    A((q0)):::start -->|'a'| B((q1))
-    B -->|ε| C((q2))
-    C -->|ε| D((q3)):::accepting
-    A -->|ε| E((q4))
+    A((q0)):::start -->|"a"| B((q1))
+    B -->|"eps"| C((q2))
+    C -->|"eps"| D((q3)):::accepting
+    A -->|"eps"| E((q4))
                 </div>
                 <p class="description">ε-closure(q0) = {q0, q4}<br>ε-closure(q1) = {q1}<br>ε-closure(q2) = {q2, q3}<br>ε-closure({q2,q3}) = {q2, q3}</p>
             </div>
@@ -631,8 +623,8 @@ graph LR
                 <div class="diagram-title">Resulting DFA States</div>
                 <div class="mermaid">
 graph LR
-    A[["q0+q4"]]:::start -->|'a'| B[["q1"]]
-    B -->|ε| C[["q2+q3"]]:::accepting
+    A[["q0q4"]]:::start -->|"a"| B[["q1"]]
+    B -->|"eps"| C[["q2q3"]]:::accepting
                 </div>
                 <p class="description">DFA states = powerset of NFA states<br>Accepting states include any ε-closure containing accepting NFA state</p>
             </div>
@@ -694,7 +686,7 @@ graph LR
 </div>
 
 <script>
-    mermaid.initialize({ 
+    mermaid.initialize({
         startOnLoad: true,
         theme: 'default',
         flowchart: { useMaxWidth: true }

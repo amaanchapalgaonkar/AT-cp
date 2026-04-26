@@ -39,3 +39,39 @@ function send() {
     document.getElementById("input").value = "";
 }
 
+// Helper functions for rendering token bar charts and entity lists
+function renderTokenBarChartHelper(tokens) {
+    const tokenColors = {
+        'WORD': { bg: '#f0f4ff', fg: '#667eea' },
+        'NUMBER': { bg: '#fff4e6', fg: '#ff9800' },
+        'EMAIL': { bg: '#f3e5f5', fg: '#9c27b0' },
+        'URL': { bg: '#e0f2f1', fg: '#009688' },
+        'HASHTAG': { bg: '#fce4ec', fg: '#e91e63' },
+        'MENTION': { bg: '#e3f2fd', fg: '#2196f3' },
+        'UNKNOWN': { bg: '#eeeeee', fg: '#757575' }
+    };
+
+    const typeCounts = {};
+    tokens.forEach(token => {
+        if (token.type !== 'WHITESPACE') {
+            typeCounts[token.type] = (typeCounts[token.type] || 0) + 1;
+        }
+    });
+
+    const types = Object.keys(typeCounts);
+    if (types.length === 0) return null;
+
+    const maxCount = Math.max(...Object.values(typeCounts));
+    return types.map(type => ({
+        type: type,
+        count: typeCounts[type],
+        percentage: (typeCounts[type] / maxCount) * 100,
+        colors: tokenColors[type] || tokenColors['UNKNOWN']
+    }));
+}
+
+function renderEntityListHelper(tokens) {
+    return tokens.filter(token =>
+        ['EMAIL', 'URL', 'HASHTAG', 'MENTION'].includes(token.type)
+    );
+}
